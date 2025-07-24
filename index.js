@@ -10,8 +10,10 @@ const TD_WB_RESULT_FILE_PATH = './ready_stocks/td-wb-stocks-updated.xlsx';
 const COMPARE_FILE_PATH = './compare.xlsx';
 
 const BYAZ220_SHEETNAME = 'GT_Byaz_220';
-const BYAZ150_SHEETNAME = 'GT_Byaz_150';
-const BYAZ150GOST_SHEETNAME = 'GT_Byaz_150_Gost';
+const BYAZ150_120_SHEETNAME = 'GT_Byaz_150_120';
+const BYAZ150_140_SHEETNAME = 'GT_Byaz_150_140';
+const BYAZ150_120_SOLID_SHEETNAME = 'GT_Byaz_150_120_Solid';
+const BYAZ150_140_SOLID_SHEETNAME = 'GT_Byaz_150_140_Solid';
 const POPLIN220_SHEETNAME = 'GT_Poplin_220';
 const TD_SHEETNAME = 'TD';
 
@@ -26,17 +28,25 @@ const parseGaltexStocks = async () => {
     const sheet1 = workbook1.Sheets[sheetName1];
     const data1 = XLSX.utils.sheet_to_json(sheet1, { header: 1, });
 
-    const materialNameRow = data1[5][0] || undefined; // Определяем название материала
+    const materialNameRowIndex = data1.findIndex(value => value[0] === 'Характеристика номенклатуры') + 1; // Ищем строку Характеристика номенклатуры и берём следующую за ней строку
+    const materialNameRow = data1[materialNameRowIndex][0] || undefined; // Определяем название материала
     if (!materialNameRow) return console.log('Material name empty');
 
     const sheetName = (
       materialNameRow.includes('Бязь') && materialNameRow.includes('220') ? BYAZ220_SHEETNAME :
-        materialNameRow.includes('Бязь') && materialNameRow.includes('150см/120гр') ? BYAZ150_SHEETNAME :
-          materialNameRow.includes('Бязь') && materialNameRow.includes('150см/140гр') ? BYAZ150GOST_SHEETNAME :
-            materialNameRow.includes('Поплин') ? POPLIN220_SHEETNAME :
-              undefined
+        materialNameRow.includes('Бязь') && materialNameRow.includes('(150см/120гр) наб') ? BYAZ150_120_SHEETNAME :
+          materialNameRow.includes('Бязь') && materialNameRow.includes('(150см/140гр) наб') ? BYAZ150_140_SHEETNAME :
+            materialNameRow.includes('Бязь') && materialNameRow.includes('(150см/120гр) гл/кр') ? BYAZ150_120_SOLID_SHEETNAME :
+              materialNameRow.includes('Бязь') && materialNameRow.includes('(150см/140гр) гл/кр') ? BYAZ150_140_SOLID_SHEETNAME :
+                materialNameRow.includes('Поплин') ? POPLIN220_SHEETNAME :
+                  undefined
     ); // Определяем название листа в зависимости от названия материала
     if (!sheetName) return console.log('Material name not found');
+
+    // Определяем номер столбца из которого брать количество остатков
+    const nomenklaturaRow = data1.find(value => value[0] === 'Номенклатура');
+    if (!nomenklaturaRow) return console.log('Nomenklatura row not found');
+    const stocksCountHeadingIndex = nomenklaturaRow.findIndex(value => value === 'Свободный остаток');
 
     const workbook2 = XLSX.readFile(COMPARE_FILE_PATH);
     const sheet2 = workbook2.Sheets[sheetName];
@@ -51,7 +61,7 @@ const parseGaltexStocks = async () => {
       const valueMatch = stocksFileValues.filter(value2 => (value2[0] + NAME_POSTFIX).includes(value)); // Поиск всех совпадений (может быть одно или два)
       const greaterValue = valueMatch.length > 1 ? valueMatch[0][3] > valueMatch[1][3] ? valueMatch[0] : valueMatch[1] : valueMatch[0]; // Если одно совпадение, то берем его, если два, то берём то, в котором больше остаток
 
-      const remain = greaterValue && greaterValue.length > 0 && greaterValue[3] > 600 ? 5 : 0;
+      const remain = greaterValue && greaterValue.length > 0 && greaterValue[stocksCountHeadingIndex] > 600 ? 5 : 0;
 
       return [data2[i][0], data2[i][2], remain];
     });
