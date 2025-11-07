@@ -9,6 +9,8 @@ const GALTEX_OZON_RESULT_FILE_PATH = './ready_stocks/galtex-ozon-stocks-updated.
 const GALTEX_WB_RESULT_FILE_PATH = './ready_stocks/galtex-wb-stocks-updated.xlsx';
 const TD_OZON_RESULT_FILE_PATH = './ready_stocks/td-ozon-stocks-updated.xlsx';
 const TD_WB_RESULT_FILE_PATH = './ready_stocks/td-wb-stocks-updated.xlsx';
+const AD_OZON_RESULT_FILE_PATH = './ready_stocks/ad-ozon-stocks-updated.xlsx';
+const AD_WB_RESULT_FILE_PATH = './ready_stocks/ad-wb-stocks-updated.xlsx';
 const COMPARE_FILE_PATH = './compare.xlsx';
 
 const BYAZ220_SHEETNAME = 'GT_Byaz_220';
@@ -18,28 +20,40 @@ const BYAZ150_120_SOLID_SHEETNAME = 'GT_Byaz_150_120_Solid';
 const BYAZ150_140_SOLID_SHEETNAME = 'GT_Byaz_150_140_Solid';
 const POPLIN220_SHEETNAME = 'GT_Poplin_220';
 const TD_SHEETNAME = 'TD';
+const AD_SHEETNAME = 'AD';
 
 const WAREHOUSE_ID = 'СЦ (Коляново) (1020002072018000)';
 const NAME_POSTFIX = '+2% к прайсу';
 const TD_DATA_EXPORT_URL = 'https://texdesign.ru/bitrix/catalog_export/cloth.xml';
 
 const parseArtdesignStocks = async () => {
-  let workbook;
+  let stocksWorkbook;
 
   try {
     if (fs.existsSync(XLSX_STOCKS_FILE_PATH)) {
-      workbook = XLSX.readFile(XLSX_STOCKS_FILE_PATH);
+      stocksWorkbook = XLSX.readFile(XLSX_STOCKS_FILE_PATH);
     } else {
-      workbook = XLSX.readFile(XLS_STOCKS_FILE_PATH);
+      stocksWorkbook = XLSX.readFile(XLS_STOCKS_FILE_PATH);
     }
 
-    // console.log(workbook)
-    const sheetName1 = workbook.SheetNames[0];
-    const sheet1 = workbook.Sheets[sheetName1];
-    const data1 = XLSX.utils.sheet_to_json(sheet1, { header: 1, });
+    const stocksSheetName = stocksWorkbook.SheetNames[0];
+    const stocksSheet = stocksWorkbook.Sheets[stocksSheetName];
+    const stocksData = XLSX.utils.sheet_to_json(stocksSheet, { header: 1, });
 
+    const compareWorkbook = XLSX.readFile(COMPARE_FILE_PATH);
+    const compareSheet = compareWorkbook.Sheets[AD_SHEETNAME];
+    if (!compareSheet) return console.log('Sheet not found');
+    const compareData = XLSX.utils.sheet_to_json(compareSheet, { header: 1 });
 
-    console.log(data1);
+    const result = compareData.map((compareValue, i) => { // В файле compare берём каждое значение и ищем его в файле stocks
+      const valueMatch = stocksData.find(stocksValue => stocksValue[1] && (stocksValue[1].trim() === compareValue[2])); // Поиск совпадения по артмкулу поставщика
+      const remain = valueMatch && valueMatch.length > 0 && valueMatch[5] > 600 ? 5 : 0;
+
+      return [compareValue[0], compareValue[3], remain]; // Возвращаем [артикул Озон, артикул ВБ, остаток]
+    });
+    // console.log(result);
+
+    return result;
   } catch (error) {
     console.error(error);
   }
@@ -174,6 +188,7 @@ const main = async () => {
         break;
       case 'td': // Сохраняем остатки для Texdesign
         data = await parseTexdesignStocks();
+
         resultOzon = data.map(item => ({
           'Название склада (идентификатор склада)': WAREHOUSE_ID,
           'Артикул': item[0],
@@ -192,7 +207,22 @@ const main = async () => {
         break;
       case 'ad': // Сохраняем остатки для ArtDesign
         data = await parseArtdesignStocks();
-        // createXLSXFile(data, COMPARE_FILE_PATH);
+
+        resultOzon = data.map(item => ({
+          'Название склада (идентификатор склада)': WAREHOUSE_ID,
+          'Артикул': item[0],
+          'Название товара': '',
+          'Доступно на складе, шт': item[2]
+        }));
+
+        resultWb = data.filter(elem => elem[1]).map(item => ({
+          'Баркод': item[1],
+          'Количество': item[2],
+        }));
+
+        createXLSXFile(resultOzon, AD_OZON_RESULT_FILE_PATH);
+        createXLSXFile(resultWb, AD_WB_RESULT_FILE_PATH);
+
         break;
       default:
         console.log('Unknown argument');
