@@ -1,8 +1,10 @@
+const fs = require('fs');
 const axios = require('axios');
 const XLSX = require('xlsx');
 const { XMLParser } = require('fast-xml-parser');
 
-const STOCKS_FILE_PATH = './stocks.xlsx';
+const XLSX_STOCKS_FILE_PATH = './stocks.xlsx';
+const XLS_STOCKS_FILE_PATH = './stocks.xls';
 const GALTEX_OZON_RESULT_FILE_PATH = './ready_stocks/galtex-ozon-stocks-updated.xlsx';
 const GALTEX_WB_RESULT_FILE_PATH = './ready_stocks/galtex-wb-stocks-updated.xlsx';
 const TD_OZON_RESULT_FILE_PATH = './ready_stocks/td-ozon-stocks-updated.xlsx';
@@ -20,6 +22,28 @@ const TD_SHEETNAME = 'TD';
 const WAREHOUSE_ID = 'СЦ (Коляново) (1020002072018000)';
 const NAME_POSTFIX = '+2% к прайсу';
 const TD_DATA_EXPORT_URL = 'https://texdesign.ru/bitrix/catalog_export/cloth.xml';
+
+const parseArtdesignStocks = async () => {
+  let workbook;
+
+  try {
+    if (fs.existsSync(XLSX_STOCKS_FILE_PATH)) {
+      workbook = XLSX.readFile(XLSX_STOCKS_FILE_PATH);
+    } else {
+      workbook = XLSX.readFile(XLS_STOCKS_FILE_PATH);
+    }
+
+    // console.log(workbook)
+    const sheetName1 = workbook.SheetNames[0];
+    const sheet1 = workbook.Sheets[sheetName1];
+    const data1 = XLSX.utils.sheet_to_json(sheet1, { header: 1, });
+
+
+    console.log(data1);
+  } catch (error) {
+    console.error(error);
+  }
+}
 
 const parseGaltexStocks = async () => {
   try {
@@ -165,6 +189,10 @@ const main = async () => {
         createXLSXFile(resultOzon, TD_OZON_RESULT_FILE_PATH);
         createXLSXFile(resultWb, TD_WB_RESULT_FILE_PATH);
 
+        break;
+      case 'ad': // Сохраняем остатки для ArtDesign
+        data = await parseArtdesignStocks();
+        // createXLSXFile(data, COMPARE_FILE_PATH);
         break;
       default:
         console.log('Unknown argument');
