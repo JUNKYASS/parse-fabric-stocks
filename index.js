@@ -11,20 +11,58 @@ const TD_OZON_RESULT_FILE_PATH = './ready_stocks/td-ozon-stocks-updated.xlsx';
 const TD_WB_RESULT_FILE_PATH = './ready_stocks/td-wb-stocks-updated.xlsx';
 const AD_OZON_RESULT_FILE_PATH = './ready_stocks/ad-ozon-stocks-updated.xlsx';
 const AD_WB_RESULT_FILE_PATH = './ready_stocks/ad-wb-stocks-updated.xlsx';
+const TDL_OZON_RESULT_FILE_PATH = './ready_stocks/tdl-ozon-stocks-updated.xlsx';
+const TDL_WB_RESULT_FILE_PATH = './ready_stocks/tdl-wb-stocks-updated.xlsx';
 const COMPARE_FILE_PATH = './compare.xlsx';
 
-const BYAZ220_SHEETNAME = 'GT_Byaz_220';
-const BYAZ150_120_SHEETNAME = 'GT_Byaz_150_120';
-const BYAZ150_140_SHEETNAME = 'GT_Byaz_150_140';
-const BYAZ150_120_SOLID_SHEETNAME = 'GT_Byaz_150_120_Solid';
-const BYAZ150_140_SOLID_SHEETNAME = 'GT_Byaz_150_140_Solid';
-const POPLIN220_SHEETNAME = 'GT_Poplin_220';
+const GT_BYAZ_220_SHEETNAME = 'GT_Byaz_220';
+const GT_BYAZ_150_120_SHEETNAME = 'GT_Byaz_150_120';
+const GT_BYAZ_150_140_SHEETNAME = 'GT_Byaz_150_140';
+const GT_BYAZ_150_120_SOLID_SHEETNAME = 'GT_Byaz_150_120_Solid';
+const GT_BYAZ_150_140_SOLID_SHEETNAME = 'GT_Byaz_150_140_Solid';
+const GT_POPLIN_220_SHEETNAME = 'GT_Poplin_220';
 const TD_SHEETNAME = 'TD';
 const AD_SHEETNAME = 'AD';
+const TDL_BYAZ_220_SOLID_SHEETNAME = 'TDL_Byaz_220_solid';
 
 const WAREHOUSE_ID = 'СЦ (Коляново) (1020002072018000)';
 const NAME_POSTFIX = '+2% к прайсу';
 const TD_DATA_EXPORT_URL = 'https://texdesign.ru/bitrix/catalog_export/cloth.xml';
+
+const parseTDLStocks = async () => { // TDL (сделано только для бязи 220 однотонной, в будущем можно расширить)
+  let stocksWorkbook;
+
+  try {
+    if (fs.existsSync(XLSX_STOCKS_FILE_PATH)) {
+      stocksWorkbook = XLSX.readFile(XLSX_STOCKS_FILE_PATH);
+    } else {
+      stocksWorkbook = XLSX.readFile(XLS_STOCKS_FILE_PATH);
+    }
+
+    const stocksSheetName = stocksWorkbook.SheetNames[0];
+    const stocksSheet = stocksWorkbook.Sheets[stocksSheetName];
+    const stocksData = XLSX.utils.sheet_to_json(stocksSheet, { header: 1, });
+    // console.log(stocksData);
+
+    const compareWorkbook = XLSX.readFile(COMPARE_FILE_PATH);
+    const compareSheet = compareWorkbook.Sheets[TDL_BYAZ_220_SOLID_SHEETNAME];
+    if (!compareSheet) return console.log('Sheet not found');
+    const compareData = XLSX.utils.sheet_to_json(compareSheet, { header: 1 });
+    // console.log(compareData);
+
+    const result = compareData.map((compareValue, i) => { // В файле compare берём каждое значение и ищем его в файле stocks
+      const valueMatch = stocksData.find(stocksValue => stocksValue[3] && (stocksValue[3].trim() == compareValue[1])); // Поиск совпадения по артмкулу поставщика
+      const remain = valueMatch && valueMatch.length > 0 && valueMatch[4] > 350 ? 5 : 0;
+
+      return [compareValue[0], compareValue[3], remain]; // Возвращаем [артикул Озон, артикул ВБ, остаток]
+    });
+    // console.log(result);
+
+    return result;
+  } catch (error) {
+    console.error(error);
+  }
+};
 
 const parseArtdesignStocks = async () => {
   let stocksWorkbook;
@@ -46,7 +84,7 @@ const parseArtdesignStocks = async () => {
     const compareData = XLSX.utils.sheet_to_json(compareSheet, { header: 1 });
 
     const result = compareData.map((compareValue, i) => { // В файле compare берём каждое значение и ищем его в файле stocks
-      const valueMatch = stocksData.find(stocksValue => stocksValue[1] && (stocksValue[1].trim() === compareValue[2])); // Поиск совпадения по артмкулу поставщика
+      const valueMatch = stocksData.find(stocksValue => stocksValue[1] && (stocksValue[1].trim() == compareValue[2])); // Поиск совпадения по артмкулу поставщика
       const remain = valueMatch && valueMatch.length > 0 && valueMatch[5] > 600 ? 5 : 0;
 
       return [compareValue[0], compareValue[3], remain]; // Возвращаем [артикул Озон, артикул ВБ, остаток]
@@ -71,12 +109,12 @@ const parseGaltexStocks = async () => {
     if (!materialNameRow) return console.log('Material name empty');
 
     const sheetName = (
-      materialNameRow.includes('Бязь') && materialNameRow.includes('220') ? BYAZ220_SHEETNAME :
-        materialNameRow.includes('Бязь') && materialNameRow.includes('(150см/120гр) наб') ? BYAZ150_120_SHEETNAME :
-          materialNameRow.includes('Бязь') && materialNameRow.includes('(150см/140гр) наб') ? BYAZ150_140_SHEETNAME :
-            materialNameRow.includes('Бязь') && materialNameRow.includes('(150см/120гр) гл/кр') ? BYAZ150_120_SOLID_SHEETNAME :
-              materialNameRow.includes('Бязь') && materialNameRow.includes('(150см/140гр) гл/кр') ? BYAZ150_140_SOLID_SHEETNAME :
-                materialNameRow.includes('Поплин') ? POPLIN220_SHEETNAME :
+      materialNameRow.includes('Бязь') && materialNameRow.includes('220') ? GT_BYAZ_220_SHEETNAME :
+        materialNameRow.includes('Бязь') && materialNameRow.includes('(150см/120гр) наб') ? GT_BYAZ_150_120_SHEETNAME :
+          materialNameRow.includes('Бязь') && materialNameRow.includes('(150см/140гр) наб') ? GT_BYAZ_150_140_SHEETNAME :
+            materialNameRow.includes('Бязь') && materialNameRow.includes('(150см/120гр) гл/кр') ? GT_BYAZ_150_120_SOLID_SHEETNAME :
+              materialNameRow.includes('Бязь') && materialNameRow.includes('(150см/140гр) гл/кр') ? GT_BYAZ_150_140_SOLID_SHEETNAME :
+                materialNameRow.includes('Поплин') ? GT_POPLIN_220_SHEETNAME :
                   undefined
     ); // Определяем название листа в зависимости от названия материала
     if (!sheetName) return console.log('Material name not found');
@@ -222,6 +260,25 @@ const main = async () => {
 
         createXLSXFile(resultOzon, AD_OZON_RESULT_FILE_PATH);
         createXLSXFile(resultWb, AD_WB_RESULT_FILE_PATH);
+
+        break;
+      case 'TDL': // Сохраняем остатки для TDL
+        data = await parseTDLStocks();
+
+        resultOzon = data.map(item => ({
+          'Название склада (идентификатор склада)': WAREHOUSE_ID,
+          'Артикул': item[0],
+          'Название товара': '',
+          'Доступно на складе, шт': item[2]
+        }));
+
+        resultWb = data.filter(elem => elem[1]).map(item => ({
+          'Баркод': item[1],
+          'Количество': item[2],
+        }));
+
+        createXLSXFile(resultOzon, TDL_OZON_RESULT_FILE_PATH);
+        createXLSXFile(resultWb, TDL_WB_RESULT_FILE_PATH);
 
         break;
       default:
