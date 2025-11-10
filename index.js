@@ -3,18 +3,6 @@ const axios = require('axios');
 const XLSX = require('xlsx');
 const { XMLParser } = require('fast-xml-parser');
 
-const XLSX_STOCKS_FILE_PATH = './stocks.xlsx';
-const XLS_STOCKS_FILE_PATH = './stocks.xls';
-const GALTEX_OZON_RESULT_FILE_PATH = './ready_stocks/galtex-ozon-stocks-updated.xlsx';
-const GALTEX_WB_RESULT_FILE_PATH = './ready_stocks/galtex-wb-stocks-updated.xlsx';
-const TD_OZON_RESULT_FILE_PATH = './ready_stocks/td-ozon-stocks-updated.xlsx';
-const TD_WB_RESULT_FILE_PATH = './ready_stocks/td-wb-stocks-updated.xlsx';
-const AD_OZON_RESULT_FILE_PATH = './ready_stocks/ad-ozon-stocks-updated.xlsx';
-const AD_WB_RESULT_FILE_PATH = './ready_stocks/ad-wb-stocks-updated.xlsx';
-const TDL_OZON_RESULT_FILE_PATH = './ready_stocks/tdl-ozon-stocks-updated.xlsx';
-const TDL_WB_RESULT_FILE_PATH = './ready_stocks/tdl-wb-stocks-updated.xlsx';
-const COMPARE_FILE_PATH = './compare.xlsx';
-
 const GT_BYAZ_220_SHEETNAME = 'GT_Byaz_220';
 const GT_BYAZ_150_120_SHEETNAME = 'GT_Byaz_150_120';
 const GT_BYAZ_150_140_SHEETNAME = 'GT_Byaz_150_140';
@@ -29,15 +17,32 @@ const WAREHOUSE_ID = 'СЦ (Коляново) (1020002072018000)';
 const NAME_POSTFIX = '+2% к прайсу';
 const TD_DATA_EXPORT_URL = 'https://texdesign.ru/bitrix/catalog_export/cloth.xml';
 
+const GALTEX_OZON_RESULT_FILE_PATH = './ready_stocks/galtex-ozon-stocks-updated.xlsx';
+const GALTEX_WB_RESULT_FILE_PATH = './ready_stocks/galtex-wb-stocks-updated.xlsx';
+const TD_OZON_RESULT_FILE_PATH = './ready_stocks/td-ozon-stocks-updated.xlsx';
+const TD_WB_RESULT_FILE_PATH = './ready_stocks/td-wb-stocks-updated.xlsx';
+const AD_OZON_RESULT_FILE_PATH = './ready_stocks/ad-ozon-stocks-updated.xlsx';
+const AD_WB_RESULT_FILE_PATH = './ready_stocks/ad-wb-stocks-updated.xlsx';
+const TDL_OZON_RESULT_FILE_PATH = './ready_stocks/tdl-ozon-stocks-updated.xlsx';
+const TDL_WB_RESULT_FILE_PATH = './ready_stocks/tdl-wb-stocks-updated.xlsx';
+const COMPARE_FILE_PATH = './compare.xlsx';
+const XLSX_STOCKS_FILE_PATH = './stocks.xlsx';
+const XLS_STOCKS_FILE_PATH = './stocks.xls';
+const stocksWorkbook = fs.existsSync(XLSX_STOCKS_FILE_PATH)
+  ? XLSX.readFile(XLSX_STOCKS_FILE_PATH)
+  : fs.existsSync(XLS_STOCKS_FILE_PATH)
+    ? XLSX.readFile(XLS_STOCKS_FILE_PATH)
+    : false;
+
 const parseTDLStocks = async () => { // TDL (сделано только для бязи 220 однотонной, в будущем можно расширить)
-  let stocksWorkbook;
+  // let stocksWorkbook;
 
   try {
-    if (fs.existsSync(XLSX_STOCKS_FILE_PATH)) {
-      stocksWorkbook = XLSX.readFile(XLSX_STOCKS_FILE_PATH);
-    } else {
-      stocksWorkbook = XLSX.readFile(XLS_STOCKS_FILE_PATH);
-    }
+    // if (fs.existsSync(XLSX_STOCKS_FILE_PATH)) {
+    //   stocksWorkbook = XLSX.readFile(XLSX_STOCKS_FILE_PATH);
+    // } else {
+    //   stocksWorkbook = XLSX.readFile(XLS_STOCKS_FILE_PATH);
+    // }
 
     const stocksSheetName = stocksWorkbook.SheetNames[0];
     const stocksSheet = stocksWorkbook.Sheets[stocksSheetName];
@@ -65,14 +70,14 @@ const parseTDLStocks = async () => { // TDL (сделано только для 
 };
 
 const parseArtdesignStocks = async () => {
-  let stocksWorkbook;
+  // let stocksWorkbook;
 
   try {
-    if (fs.existsSync(XLSX_STOCKS_FILE_PATH)) {
-      stocksWorkbook = XLSX.readFile(XLSX_STOCKS_FILE_PATH);
-    } else {
-      stocksWorkbook = XLSX.readFile(XLS_STOCKS_FILE_PATH);
-    }
+    // if (fs.existsSync(XLSX_STOCKS_FILE_PATH)) {
+    //   stocksWorkbook = XLSX.readFile(XLSX_STOCKS_FILE_PATH);
+    // } else {
+    //   stocksWorkbook = XLSX.readFile(XLS_STOCKS_FILE_PATH);
+    // }
 
     const stocksSheetName = stocksWorkbook.SheetNames[0];
     const stocksSheet = stocksWorkbook.Sheets[stocksSheetName];
@@ -99,9 +104,8 @@ const parseArtdesignStocks = async () => {
 
 const parseGaltexStocks = async () => {
   try {
-    const workbook1 = XLSX.readFile(STOCKS_FILE_PATH);
-    const sheetName1 = workbook1.SheetNames[0];
-    const sheet1 = workbook1.Sheets[sheetName1];
+    const sheetName1 = stocksWorkbook.SheetNames[0];
+    const sheet1 = stocksWorkbook.Sheets[sheetName1];
     const data1 = XLSX.utils.sheet_to_json(sheet1, { header: 1, });
 
     const materialNameRowIndex = data1.findIndex(value => value[0] === 'Характеристика номенклатуры') + 1; // Ищем строку Характеристика номенклатуры и берём следующую за ней строку
