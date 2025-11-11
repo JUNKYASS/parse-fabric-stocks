@@ -82,6 +82,7 @@ const parseArtdesignStocks = async () => {
     const stocksSheetName = stocksWorkbook.SheetNames[0];
     const stocksSheet = stocksWorkbook.Sheets[stocksSheetName];
     const stocksData = XLSX.utils.sheet_to_json(stocksSheet, { header: 1, });
+    console.log(stocksData);
 
     const compareWorkbook = XLSX.readFile(COMPARE_FILE_PATH);
     const compareSheet = compareWorkbook.Sheets[AD_SHEETNAME];
@@ -90,7 +91,7 @@ const parseArtdesignStocks = async () => {
 
     const result = compareData.map((compareValue, i) => { // В файле compare берём каждое значение и ищем его в файле stocks
       const valueMatch = stocksData.find(stocksValue => stocksValue[1] && (stocksValue[1].trim() == compareValue[2])); // Поиск совпадения по артмкулу поставщика
-      const remain = valueMatch && valueMatch.length > 0 && valueMatch[5] > 600 ? 5 : 0;
+      const remain = valueMatch && valueMatch.length > 0 && valueMatch[4] > 600 ? 5 : 0;
 
       return [compareValue[0], compareValue[3], remain]; // Возвращаем [артикул Озон, артикул ВБ, остаток]
     });
