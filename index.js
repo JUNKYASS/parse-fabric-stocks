@@ -3,7 +3,8 @@ const axios = require('axios');
 const XLSX = require('xlsx');
 const { XMLParser } = require('fast-xml-parser');
 
-const GT_BYAZ_220_SHEETNAME = 'GT_Byaz_220';
+const GT_BYAZ_220_120_SHEETNAME = 'GT_Byaz_220_120';
+const GT_BYAZ_220_140_SHEETNAME = 'GT_Byaz_220_140';
 const GT_BYAZ_150_120_SHEETNAME = 'GT_Byaz_150_120';
 const GT_BYAZ_150_140_SHEETNAME = 'GT_Byaz_150_140';
 const GT_BYAZ_150_120_SOLID_SHEETNAME = 'GT_Byaz_150_120_Solid';
@@ -25,7 +26,7 @@ const AD_OZON_RESULT_FILE_PATH = './ready_stocks/ad-ozon-stocks-updated.xlsx';
 const AD_WB_RESULT_FILE_PATH = './ready_stocks/ad-wb-stocks-updated.xlsx';
 const TDL_OZON_RESULT_FILE_PATH = './ready_stocks/tdl-ozon-stocks-updated.xlsx';
 const TDL_WB_RESULT_FILE_PATH = './ready_stocks/tdl-wb-stocks-updated.xlsx';
-const COMPARE_FILE_PATH = './compare.xlsx';
+const MAPPING_FILE_PATH = './mapping.xlsx';
 const XLSX_STOCKS_FILE_PATH = './stocks.xlsx';
 const XLS_STOCKS_FILE_PATH = './stocks.xls';
 const stocksWorkbook = fs.existsSync(XLSX_STOCKS_FILE_PATH)
@@ -35,31 +36,23 @@ const stocksWorkbook = fs.existsSync(XLSX_STOCKS_FILE_PATH)
     : false;
 
 const parseTDLStocks = async () => { // TDL (сделано только для бязи 220 однотонной, в будущем можно расширить)
-  // let stocksWorkbook;
-
   try {
-    // if (fs.existsSync(XLSX_STOCKS_FILE_PATH)) {
-    //   stocksWorkbook = XLSX.readFile(XLSX_STOCKS_FILE_PATH);
-    // } else {
-    //   stocksWorkbook = XLSX.readFile(XLS_STOCKS_FILE_PATH);
-    // }
-
     const stocksSheetName = stocksWorkbook.SheetNames[0];
     const stocksSheet = stocksWorkbook.Sheets[stocksSheetName];
     const stocksData = XLSX.utils.sheet_to_json(stocksSheet, { header: 1, });
     // console.log(stocksData);
 
-    const compareWorkbook = XLSX.readFile(COMPARE_FILE_PATH);
-    const compareSheet = compareWorkbook.Sheets[TDL_BYAZ_220_SOLID_SHEETNAME];
-    if (!compareSheet) return console.log('Sheet not found');
-    const compareData = XLSX.utils.sheet_to_json(compareSheet, { header: 1 });
-    // console.log(compareData);
+    const mappingWorkBook = XLSX.readFile(MAPPING_FILE_PATH);
+    const mappingSheet = mappingWorkBook.Sheets[TDL_BYAZ_220_SOLID_SHEETNAME];
+    if (!mappingSheet) return console.log('Sheet not found');
+    const mappingData = XLSX.utils.sheet_to_json(mappingSheet, { header: 1 });
+    // console.log(mappingData);
 
-    const result = compareData.map((compareValue, i) => { // В файле compare берём каждое значение и ищем его в файле stocks
-      const valueMatch = stocksData.find(stocksValue => stocksValue[3] && (stocksValue[3].trim() == compareValue[1])); // Поиск совпадения по артмкулу поставщика
+    const result = mappingData.map((mappingValue, i) => { // В файле mapping берём каждое значение и ищем его в файле stocks
+      const valueMatch = stocksData.find(stocksValue => stocksValue[3] && (stocksValue[3].trim() == mappingValue[1])); // Поиск совпадения по артмкулу поставщика
       const remain = valueMatch && valueMatch.length > 0 && valueMatch[4] > 350 ? 5 : 0;
 
-      return [compareValue[0], compareValue[3], remain]; // Возвращаем [артикул Озон, артикул ВБ, остаток]
+      return [mappingValue[0], mappingValue[3], remain]; // Возвращаем [артикул Озон, артикул ВБ, остаток]
     });
     // console.log(result);
 
@@ -70,30 +63,21 @@ const parseTDLStocks = async () => { // TDL (сделано только для 
 };
 
 const parseArtdesignStocks = async () => {
-  // let stocksWorkbook;
-
   try {
-    // if (fs.existsSync(XLSX_STOCKS_FILE_PATH)) {
-    //   stocksWorkbook = XLSX.readFile(XLSX_STOCKS_FILE_PATH);
-    // } else {
-    //   stocksWorkbook = XLSX.readFile(XLS_STOCKS_FILE_PATH);
-    // }
-
     const stocksSheetName = stocksWorkbook.SheetNames[0];
     const stocksSheet = stocksWorkbook.Sheets[stocksSheetName];
     const stocksData = XLSX.utils.sheet_to_json(stocksSheet, { header: 1, });
-    console.log(stocksData);
 
-    const compareWorkbook = XLSX.readFile(COMPARE_FILE_PATH);
-    const compareSheet = compareWorkbook.Sheets[AD_SHEETNAME];
-    if (!compareSheet) return console.log('Sheet not found');
-    const compareData = XLSX.utils.sheet_to_json(compareSheet, { header: 1 });
+    const mappingWorkBook = XLSX.readFile(MAPPING_FILE_PATH);
+    const mappingSheet = mappingWorkBook.Sheets[AD_SHEETNAME];
+    if (!mappingSheet) return console.log('Sheet not found');
+    const mappingData = XLSX.utils.sheet_to_json(mappingSheet, { header: 1 });
 
-    const result = compareData.map((compareValue, i) => { // В файле compare берём каждое значение и ищем его в файле stocks
-      const valueMatch = stocksData.find(stocksValue => stocksValue[1] && (stocksValue[1].trim() == compareValue[2])); // Поиск совпадения по артмкулу поставщика
+    const result = mappingData.map((mappingValue, i) => { // В файле mapping берём каждое значение и ищем его в файле stocks
+      const valueMatch = stocksData.find(stocksValue => stocksValue[1] && (stocksValue[1].trim() == mappingValue[2])); // Поиск совпадения по артмкулу поставщика
       const remain = valueMatch && valueMatch.length > 0 && valueMatch[4] > 600 ? 5 : 0;
 
-      return [compareValue[0], compareValue[3], remain]; // Возвращаем [артикул Озон, артикул ВБ, остаток]
+      return [mappingValue[0], mappingValue[3], remain]; // Возвращаем [артикул Озон, артикул ВБ, остаток]
     });
     // console.log(result);
 
@@ -105,46 +89,48 @@ const parseArtdesignStocks = async () => {
 
 const parseGaltexStocks = async () => {
   try {
-    const sheetName1 = stocksWorkbook.SheetNames[0];
-    const sheet1 = stocksWorkbook.Sheets[sheetName1];
-    const data1 = XLSX.utils.sheet_to_json(sheet1, { header: 1, });
+    const stocksSheetName = stocksWorkbook.SheetNames[0];
+    const stocksSheet = stocksWorkbook.Sheets[stocksSheetName];
+    const stocksData = XLSX.utils.sheet_to_json(stocksSheet, { header: 1, });
+    // console.log(stocksData)
 
-    const materialNameRowIndex = data1.findIndex(value => value[0] === 'Характеристика номенклатуры') + 1; // Ищем строку Характеристика номенклатуры и берём следующую за ней строку
-    const materialNameRow = data1[materialNameRowIndex][0] || undefined; // Определяем название материала
+    const materialNameRowIndex = stocksData.findIndex(value => value[0] === 'Характеристика номенклатуры') + 1; // Ищем строку Характеристика номенклатуры и берём следующую за ней строку
+    const materialNameRow = stocksData[materialNameRowIndex][0] || undefined; // Определяем название материала
     if (!materialNameRow) return console.log('Material name empty');
 
     const sheetName = (
-      materialNameRow.includes('Бязь') && materialNameRow.includes('220') ? GT_BYAZ_220_SHEETNAME :
-        materialNameRow.includes('Бязь') && materialNameRow.includes('(150см/120гр) наб') ? GT_BYAZ_150_120_SHEETNAME :
-          materialNameRow.includes('Бязь') && materialNameRow.includes('(150см/140гр) наб') ? GT_BYAZ_150_140_SHEETNAME :
-            materialNameRow.includes('Бязь') && materialNameRow.includes('(150см/120гр) гл/кр') ? GT_BYAZ_150_120_SOLID_SHEETNAME :
-              materialNameRow.includes('Бязь') && materialNameRow.includes('(150см/140гр) гл/кр') ? GT_BYAZ_150_140_SOLID_SHEETNAME :
-                materialNameRow.includes('Поплин') ? GT_POPLIN_220_SHEETNAME :
-                  undefined
+      materialNameRow.includes('Бязь') && materialNameRow.includes('(220см/120гр) наб') ? GT_BYAZ_220_120_SHEETNAME :
+        materialNameRow.includes('Бязь') && materialNameRow.includes('(220см/140гр) наб') ? GT_BYAZ_220_140_SHEETNAME :
+          materialNameRow.includes('Бязь') && materialNameRow.includes('(150см/120гр) наб') ? GT_BYAZ_150_120_SHEETNAME :
+            materialNameRow.includes('Бязь') && materialNameRow.includes('(150см/140гр) наб') ? GT_BYAZ_150_140_SHEETNAME :
+              materialNameRow.includes('Бязь') && materialNameRow.includes('(150см/120гр) гл/кр') ? GT_BYAZ_150_120_SOLID_SHEETNAME :
+                materialNameRow.includes('Бязь') && materialNameRow.includes('(150см/140гр) гл/кр') ? GT_BYAZ_150_140_SOLID_SHEETNAME :
+                  materialNameRow.includes('Поплин') ? GT_POPLIN_220_SHEETNAME :
+                    undefined
     ); // Определяем название листа в зависимости от названия материала
     if (!sheetName) return console.log('Material name not found');
 
     // Определяем номер столбца из которого брать количество остатков
-    const nomenklaturaRow = data1.find(value => value[0] === 'Номенклатура');
+    const nomenklaturaRow = stocksData.find(value => value[0] === 'Номенклатура');
     if (!nomenklaturaRow) return console.log('Nomenklatura row not found');
     const stocksCountHeadingIndex = nomenklaturaRow.findIndex(value => value === 'Свободный остаток');
 
-    const workbook2 = XLSX.readFile(COMPARE_FILE_PATH);
-    const sheet2 = workbook2.Sheets[sheetName];
-    if (!sheet2) return console.log('Sheet not found');
-    const data2 = XLSX.utils.sheet_to_json(sheet2, { header: 1 });
+    const mappingWorkBook = XLSX.readFile(MAPPING_FILE_PATH);
+    const mappingSheet = mappingWorkBook.Sheets[sheetName];
+    if (!mappingSheet) return console.log('Sheet not found');
+    const mappingData = XLSX.utils.sheet_to_json(mappingSheet, { header: 1 });
 
-    const stocksFileValues = data1.slice(6);
-    const compareFileValues = data2.map(row => row[1]);
+    const stocksFileValues = stocksData.slice(6);
+    const mappingFileValues = mappingData.map(row => row[1]);
 
     // Формируем остатки
-    const result = compareFileValues.filter(value => value).map((value, i) => { // В файле compare берём каждое значение и ищем его в файле stocks
+    const result = mappingFileValues.filter(value => value).map((value, i) => { // В файле mapping берём каждое значение и ищем его в файле stocks
       const valueMatch = stocksFileValues.filter(value2 => (value2[0] + NAME_POSTFIX).includes(value)); // Поиск всех совпадений (может быть одно или два)
       const greaterValue = valueMatch.length > 1 ? valueMatch[0][3] > valueMatch[1][3] ? valueMatch[0] : valueMatch[1] : valueMatch[0]; // Если одно совпадение, то берем его, если два, то берём то, в котором больше остаток
 
       const remain = greaterValue && greaterValue.length > 0 && greaterValue[stocksCountHeadingIndex] > 600 ? 5 : 0;
 
-      return [data2[i][0], data2[i][2], remain];
+      return [mappingData[i][0], mappingData[i][2], remain];
     });
 
     return result;
@@ -175,7 +161,7 @@ const parseTexdesignStocks = async () => {
     const allItems = xmlToJsonData.yml_catalog?.shop?.offers?.offer;
     if (!allItems || allItems.length === 0) throw new Error('XML-файл не содержит ни одного товара');
 
-    const workbook = XLSX.readFile(COMPARE_FILE_PATH); // Получаем данные соответствия
+    const workbook = XLSX.readFile(MAPPING_FILE_PATH); // Получаем данные соответствия
     const sheet = workbook.Sheets[TD_SHEETNAME];
     const articlesData = XLSX.utils.sheet_to_json(sheet, { header: 1, });
 
@@ -295,26 +281,3 @@ const main = async () => {
 };
 
 main();
-
-
-// // Копирование баркодов из файла с баркодами в файл соответствия
-// const workbook1 = XLSX.readFile(BARCODES_FILE_PATH);
-// const sheetName1 = workbook1.SheetNames[2];
-// const sheet1 = workbook1.Sheets[sheetName1];
-// const barcodesData = XLSX.utils.sheet_to_json(sheet1, { header: 1, });
-
-// const workbook2 = XLSX.readFile(COMPARE_FILE_PATH);
-// const sheetName2 = workbook2.SheetNames[2];
-// const sheet2 = workbook2.Sheets[sheetName2];
-// const compareData = XLSX.utils.sheet_to_json(sheet2, { header: 1, });
-
-// const result = compareData.map((compareValue, compareIndex) => {
-//   const valueMatch = barcodesData.find(value2 => value2[1] === compareValue[0]);
-//   return [...compareValue, valueMatch ? valueMatch[0] : ''];
-// });
-
-// // Сохраняем файл
-// const ws = XLSX.utils.json_to_sheet(result);
-// const wb = XLSX.utils.book_new();
-// XLSX.utils.book_append_sheet(wb, ws, "Результаты");
-// XLSX.writeFile(wb, './new.xlsx');
