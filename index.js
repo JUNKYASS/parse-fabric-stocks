@@ -13,6 +13,7 @@ const GT_POPLIN_220_SHEETNAME = 'GT_Poplin_220';
 const TD_SHEETNAME = 'TD';
 const AD_SHEETNAME = 'AD';
 const TDL_BYAZ_220_SOLID_SHEETNAME = 'TDL_Byaz_220_solid';
+const LOGOS_SHEETNAME = 'Logos';
 
 const WAREHOUSE_ID = 'СЦ (Коляново) (1020002072018000)';
 const NAME_POSTFIX = '+2% к прайсу';
@@ -26,6 +27,8 @@ const AD_OZON_RESULT_FILE_PATH = './ready_stocks/ad-ozon-stocks-updated.xlsx';
 const AD_WB_RESULT_FILE_PATH = './ready_stocks/ad-wb-stocks-updated.xlsx';
 const TDL_OZON_RESULT_FILE_PATH = './ready_stocks/tdl-ozon-stocks-updated.xlsx';
 const TDL_WB_RESULT_FILE_PATH = './ready_stocks/tdl-wb-stocks-updated.xlsx';
+const LOGOS_OZON_RESULT_FILE_PATH = './ready_stocks/logos-ozon-stocks-updated.xlsx';
+const LOGOS_WB_RESULT_FILE_PATH = './ready_stocks/logos-wb-stocks-updated.xlsx';
 const MAPPING_FILE_PATH = './mapping.xlsx';
 const XLSX_STOCKS_FILE_PATH = './stocks.xlsx';
 const XLS_STOCKS_FILE_PATH = './stocks.xls';
@@ -52,6 +55,32 @@ const parseTDLStocks = async () => { // TDL (сделано только для 
       const valueMatch = stocksData.find(stocksValue => stocksValue[3] && (stocksValue[3].trim() == mappingValue[1])); // Поиск совпадения по артмкулу поставщика
       const remain = valueMatch && valueMatch.length > 0 && valueMatch[4] > 350 ? 5 : 0;
 
+      return [mappingValue[0], mappingValue[3], remain]; // Возвращаем [артикул Озон, артикул ВБ, остаток]
+    });
+    // console.log(result);
+
+    return result;
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const parseLogosStocks = async () => {
+  try {
+    const stocksSheetName = stocksWorkbook.SheetNames[0];
+    const stocksSheet = stocksWorkbook.Sheets[stocksSheetName];
+    const stocksData = XLSX.utils.sheet_to_json(stocksSheet, { header: 1, });
+    // console.log(stocksData);
+
+    const mappingWorkBook = XLSX.readFile(MAPPING_FILE_PATH);
+    const mappingSheet = mappingWorkBook.Sheets[LOGOS_SHEETNAME];
+    if (!mappingSheet) return console.log('Sheet not found');
+    const mappingData = XLSX.utils.sheet_to_json(mappingSheet, { header: 1 });
+    // console.log(mappingData);
+
+    const result = mappingData.map((mappingValue, i) => { // В файле mapping берём каждое значение и ищем его в файле stocks
+      const valueMatch = stocksData.find(stocksValue => stocksValue[0] && (stocksValue[0].trim() == mappingValue[1])); // Поиск совпадения по артмкулу поставщика
+      const remain = valueMatch && valueMatch.length > 0 && valueMatch[17] > 350 ? 5 : 0;
       return [mappingValue[0], mappingValue[3], remain]; // Возвращаем [артикул Озон, артикул ВБ, остаток]
     });
     // console.log(result);
@@ -270,6 +299,25 @@ const main = async () => {
 
         createXLSXFile(resultOzon, TDL_OZON_RESULT_FILE_PATH);
         createXLSXFile(resultWb, TDL_WB_RESULT_FILE_PATH);
+
+        break;
+      case 'logos': // Сохраняем остатки для Logos
+        data = await parseLogosStocks();
+
+        resultOzon = data.map(item => ({
+          'Название склада (идентификатор склада)': WAREHOUSE_ID,
+          'Артикул': item[0],
+          'Название товара': '',
+          'Доступно на складе, шт': item[2]
+        }));
+
+        resultWb = data.filter(elem => elem[1]).map(item => ({
+          'Баркод': item[1],
+          'Количество': item[2],
+        }));
+
+        createXLSXFile(resultOzon, LOGOS_OZON_RESULT_FILE_PATH);
+        createXLSXFile(resultWb, LOGOS_WB_RESULT_FILE_PATH);
 
         break;
       default:
