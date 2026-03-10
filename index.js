@@ -121,9 +121,8 @@ const parseGaltexStocks = async () => {
     const stocksSheetName = stocksWorkbook.SheetNames[0];
     const stocksSheet = stocksWorkbook.Sheets[stocksSheetName];
     const stocksData = XLSX.utils.sheet_to_json(stocksSheet, { header: 1, });
-    // console.log(stocksData)
 
-    const materialNameRowIndex = stocksData.findIndex(value => value[0] === 'Характеристика номенклатуры') + 1; // Ищем строку Характеристика номенклатуры и берём следующую за ней строку
+    const materialNameRowIndex = stocksData.findIndex(value => value[0] === 'Характеристика') + 1; // Ищем строку Характеристика номенклатуры и берём следующую за ней строку
     const materialNameRow = stocksData[materialNameRowIndex][0] || undefined; // Определяем название материала
     if (!materialNameRow) return console.log('Material name empty');
 
@@ -140,9 +139,9 @@ const parseGaltexStocks = async () => {
     if (!sheetName) return console.log('Material name not found');
 
     // Определяем номер столбца из которого брать количество остатков
-    const nomenklaturaRow = stocksData.find(value => value[0] === 'Номенклатура');
-    if (!nomenklaturaRow) return console.log('Nomenklatura row not found');
-    const stocksCountHeadingIndex = nomenklaturaRow.findIndex(value => value === 'Свободный остаток');
+    const kharakteristikaRow = stocksData.find(value => value[0] === 'Характеристика');
+    if (!kharakteristikaRow) return console.log('kharakteristika row not found');
+    const stocksCountHeadingIndex = kharakteristikaRow.findIndex(value => value === 'Остаток');
 
     const mappingWorkBook = XLSX.readFile(MAPPING_FILE_PATH);
     const mappingSheet = mappingWorkBook.Sheets[sheetName];
@@ -151,14 +150,14 @@ const parseGaltexStocks = async () => {
 
     const stocksFileValues = stocksData.slice(6);
     const mappingFileValues = mappingData.map(row => row[1]);
+    const stringToInt = (str) => parseFloat(str.replace(/\s/g, ''));
 
     // Формируем остатки
     const result = mappingFileValues.filter(value => value).map((value, i) => { // В файле mapping берём каждое значение и ищем его в файле stocks
       const valueMatch = stocksFileValues.filter(value2 => (value2[0] + NAME_POSTFIX).includes(value)); // Поиск всех совпадений (может быть одно или два)
-      const greaterValue = valueMatch.length > 1 ? valueMatch[0][3] > valueMatch[1][3] ? valueMatch[0] : valueMatch[1] : valueMatch[0]; // Если одно совпадение, то берем его, если два, то берём то, в котором больше остаток
+      const greaterValue = valueMatch.length > 1 ? valueMatch[0][stocksCountHeadingIndex] > valueMatch[1][stocksCountHeadingIndex] ? valueMatch[0] : valueMatch[1] : valueMatch[0]; // Если одно совпадение, то берем его, если два, то берём то, в котором больше остаток
 
-      const remain = greaterValue && greaterValue.length > 0 && greaterValue[stocksCountHeadingIndex] > 600 ? 5 : 0;
-
+      const remain = greaterValue && greaterValue.length > 0 && stringToInt(greaterValue[stocksCountHeadingIndex]) > 600 ? 5 : 0;
       return [mappingData[i][0], mappingData[i][2], remain];
     });
 
