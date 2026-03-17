@@ -13,7 +13,7 @@ const GT_POPLIN_220_SHEETNAME = 'GT_Poplin_220';
 const TD_SHEETNAME = 'TD';
 const AD_SHEETNAME = 'AD';
 const TDL_BYAZ_220_SOLID_SHEETNAME = 'TDL_Byaz_220_solid';
-const LOGOS_SHEETNAME = 'Logos';
+const LOGOS_SHEETNAME = 'LB';
 
 const WAREHOUSE_ID = 'СЦ (Коляново) (1020002072018000)';
 const NAME_POSTFIX = '+2% к прайсу';
@@ -80,7 +80,7 @@ const parseLogosStocks = async () => {
 
     const result = mappingData.map((mappingValue, i) => { // В файле mapping берём каждое значение и ищем его в файле stocks
       const valueMatch = stocksData.find(stocksValue => stocksValue[0] && (stocksValue[0].trim() == mappingValue[1])); // Поиск совпадения по артмкулу поставщика
-      const remain = valueMatch && valueMatch.length > 0 && valueMatch[17] > 350 ? 5 : 0;
+      const remain = valueMatch && valueMatch.length > 0 && valueMatch[18] > 350 ? 5 : 0;
       return [mappingValue[0], mappingValue[3], remain]; // Возвращаем [артикул Озон, артикул ВБ, остаток]
     });
     // console.log(result);
