@@ -81,7 +81,7 @@ const parseLogosStocks = async () => {
     const result = mappingData.map((mappingValue, i) => { // В файле mapping берём каждое значение и ищем его в файле stocks
       const valueMatch = stocksData.find(stocksValue => stocksValue[0] && (stocksValue[0].trim() == mappingValue[1])); // Поиск совпадения по артмкулу поставщика
       const remain = valueMatch && valueMatch.length > 0 && valueMatch[18] > 350 ? 5 : 0;
-      return [mappingValue[0], mappingValue[3], remain]; // Возвращаем [артикул Озон, артикул ВБ, остаток]
+      return [mappingValue[0], mappingValue[2], remain]; // Возвращаем [артикул Озон, артикул ВБ, остаток]
     });
     // console.log(result);
 
