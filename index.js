@@ -1,5 +1,6 @@
 const fs = require('fs');
 const axios = require('axios');
+const https = require('https');
 const XLSX = require('xlsx');
 const { XMLParser } = require('fast-xml-parser');
 
@@ -169,7 +170,11 @@ const parseGaltexStocks = async () => {
 
 const parseTexdesignStocks = async () => {
   try {
-    const response = await axios.get(TD_DATA_EXPORT_URL);
+    const agent = new https.Agent({
+      rejectUnauthorized: false
+    }); // Отключаем проверку сертификата
+
+    const response = await axios.get(TD_DATA_EXPORT_URL, { httpsAgent: agent }); // Загружаем XML
     if (response.statusText !== 'OK') throw new Error(`Ошибка загрузки XML: ${response.statusText}`);
     if (!response.headers['content-type']?.includes('xml')) throw new Error('Ответ не является XML-документом');
 
