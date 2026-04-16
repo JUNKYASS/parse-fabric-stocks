@@ -102,8 +102,9 @@ const parseArtdesignStocks = async () => {
     const mappingSheet = mappingWorkBook.Sheets[AD_SHEETNAME];
     if (!mappingSheet) return console.log('Sheet not found');
     const mappingData = XLSX.utils.sheet_to_json(mappingSheet, { header: 1 });
+    const filteredMappingData = mappingData.filter(row => row[4] !== 0); // Берём из файла mapping только те строки, в которых в 4 столбце не указано 0
 
-    const result = mappingData.map((mappingValue, i) => { // В файле mapping берём каждое значение и ищем его в файле stocks
+    const result = filteredMappingData.map((mappingValue, i) => { // В файле mapping берём каждое значение и ищем его в файле stocks
       const valueMatch = stocksData.find(stocksValue => stocksValue[1] && (stocksValue[1].trim() == mappingValue[2])); // Поиск совпадения по артмкулу поставщика
       const remain = valueMatch && valueMatch.length > 0 && valueMatch[4] > 600 ? 5 : 0;
 
@@ -148,9 +149,12 @@ const parseGaltexStocks = async () => {
     const mappingSheet = mappingWorkBook.Sheets[sheetName];
     if (!mappingSheet) return console.log('Sheet not found');
     const mappingData = XLSX.utils.sheet_to_json(mappingSheet, { header: 1 });
+    const filteredMappingData = mappingData.filter(row => row[3] !== 0); // Берём из файла mapping только те строки, в которых в 4 столбце не указано 0
+    const mappingFileValues = filteredMappingData.map(row => row[1]); // Формируем массив из значений 2 столбца этих строк (артикул поставщика)
 
     const stocksFileValues = stocksData.slice(6);
-    const mappingFileValues = mappingData.map(row => row[1]);
+
+    // console.log(mappingFileValues)
     const stringToInt = (str) => parseFloat(str.replace(/\s/g, ''));
 
     // Формируем остатки
@@ -159,7 +163,7 @@ const parseGaltexStocks = async () => {
       const greaterValue = valueMatch.length > 1 ? valueMatch[0][stocksCountHeadingIndex] > valueMatch[1][stocksCountHeadingIndex] ? valueMatch[0] : valueMatch[1] : valueMatch[0]; // Если одно совпадение, то берем его, если два, то берём то, в котором больше остаток
 
       const remain = greaterValue && greaterValue.length > 0 && stringToInt(greaterValue[stocksCountHeadingIndex]) > 600 ? 5 : 0;
-      return [mappingData[i][0], mappingData[i][2], remain];
+      return [filteredMappingData[i][0], filteredMappingData[i][2], remain];
     });
 
     return result;
@@ -196,10 +200,11 @@ const parseTexdesignStocks = async () => {
 
     const workbook = XLSX.readFile(MAPPING_FILE_PATH); // Получаем данные соответствия
     const sheet = workbook.Sheets[TD_SHEETNAME];
-    const articlesData = XLSX.utils.sheet_to_json(sheet, { header: 1, });
+    const mappingData = XLSX.utils.sheet_to_json(sheet, { header: 1, });
+    const filteredMappingData = mappingData.filter(row => row[3] !== 0); // Берём из файла mapping только те строки, в которых в 4 столбце не указано 0
 
     // Формируем остатки
-    const result = articlesData.filter(value => value[1]).map((article, i) => {
+    const result = filteredMappingData.filter(value => value[1]).map((article, i) => {
       const matchedItem = allItems.find(item => item.param.find(param => param['@_name'] == 'Артикул')?.['#text'] == article[1]); // Ищем среди всех товаров совпадающий артикул
 
       const qty = matchedItem?.param?.find(param => param['@_name'] == 'Количество')?.['#text']; // Выбираем параметр "Количество"
