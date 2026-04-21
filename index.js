@@ -39,6 +39,8 @@ const stocksWorkbook = fs.existsSync(XLSX_STOCKS_FILE_PATH)
     ? XLSX.readFile(XLS_STOCKS_FILE_PATH)
     : false;
 
+const stringToInt = (str) => parseFloat(str.replace(/\s/g, ''));
+
 const parseTDLStocks = async () => { // TDL (сделано только для бязи 220 однотонной, в будущем можно расширить)
   try {
     const stocksSheetName = stocksWorkbook.SheetNames[0];
@@ -81,7 +83,7 @@ const parseLogosStocks = async () => {
 
     const result = mappingData.map((mappingValue, i) => { // В файле mapping берём каждое значение и ищем его в файле stocks
       const valueMatch = stocksData.find(stocksValue => stocksValue[0] && (stocksValue[0].trim() == mappingValue[1])); // Поиск совпадения по артмкулу поставщика
-      const remain = valueMatch && valueMatch.length > 0 && valueMatch[18] > 350 ? 5 : 0;
+      const remain = valueMatch && valueMatch.length > 0 && valueMatch[14] > 350 ? 5 : 0;
       return [mappingValue[0], mappingValue[2], remain]; // Возвращаем [артикул Озон, артикул ВБ, остаток]
     });
     // console.log(result);
@@ -110,7 +112,6 @@ const parseArtdesignStocks = async () => {
 
       return [mappingValue[0], mappingValue[3], remain]; // Возвращаем [артикул Озон, артикул ВБ, остаток]
     });
-    // console.log(result);
 
     return result;
   } catch (error) {
@@ -149,17 +150,13 @@ const parseGaltexStocks = async () => {
     const mappingSheet = mappingWorkBook.Sheets[sheetName];
     if (!mappingSheet) return console.log('Sheet not found');
     const mappingData = XLSX.utils.sheet_to_json(mappingSheet, { header: 1 });
-    const filteredMappingData = mappingData.filter(row => row[3] !== 0); // Берём из файла mapping только те строки, в которых в 4 столбце не указано 0
-    const mappingFileValues = filteredMappingData.map(row => row[1]); // Формируем массив из значений 2 столбца этих строк (артикул поставщика)
-
-    const stocksFileValues = stocksData.slice(6);
-
-    // console.log(mappingFileValues)
-    const stringToInt = (str) => parseFloat(str.replace(/\s/g, ''));
+    const filteredMappingData = mappingData.filter(row => row[0] && row[1] && row[3] !== 0); // Берём из файла mapping только те строки, в которых в 4 столбце не указано 0
+    const stocksFileValues = stocksData.slice(5); // Берём из файла stocks только те строки, которые идут после технических строк
 
     // Формируем остатки
-    const result = mappingFileValues.filter(value => value).map((value, i) => { // В файле mapping берём каждое значение и ищем его в файле stocks
-      const valueMatch = stocksFileValues.filter(value2 => (value2[0] + NAME_POSTFIX).includes(value)); // Поиск всех совпадений (может быть одно или два)
+    const result = filteredMappingData.map((value, i) => { // В файле mapping берём каждое значение и ищем его в файле stocks
+
+      const valueMatch = stocksFileValues.filter(value2 => (value2[0] + NAME_POSTFIX).includes(value[1])); // Поиск всех совпадений (может быть одно или два)
       const greaterValue = valueMatch.length > 1 ? valueMatch[0][stocksCountHeadingIndex] > valueMatch[1][stocksCountHeadingIndex] ? valueMatch[0] : valueMatch[1] : valueMatch[0]; // Если одно совпадение, то берем его, если два, то берём то, в котором больше остаток
 
       const remain = greaterValue && greaterValue.length > 0 && stringToInt(greaterValue[stocksCountHeadingIndex]) > 600 ? 5 : 0;
