@@ -39,7 +39,7 @@ const stocksWorkbook = fs.existsSync(XLSX_STOCKS_FILE_PATH)
     ? XLSX.readFile(XLS_STOCKS_FILE_PATH)
     : false;
 
-const stringToInt = (str) => parseFloat(str.replace(/\s/g, ''));
+const stringToInt = (str) => parseFloat(str.toString().replace(/\s/g, '')); // Преобразование строки в число
 
 const parseTDLStocks = async () => { // TDL (сделано только для бязи 220 однотонной, в будущем можно расширить)
   try {
@@ -158,8 +158,7 @@ const parseGaltexStocks = async () => {
 
       const valueMatch = stocksFileValues.filter(value2 => (value2[0] + NAME_POSTFIX).includes(value[1])); // Поиск всех совпадений (может быть одно или два)
       const greaterValue = valueMatch.length > 1 ? valueMatch[0][stocksCountHeadingIndex] > valueMatch[1][stocksCountHeadingIndex] ? valueMatch[0] : valueMatch[1] : valueMatch[0]; // Если одно совпадение, то берем его, если два, то берём то, в котором больше остаток
-
-      const remain = greaterValue && greaterValue.length > 0 && stringToInt(greaterValue[stocksCountHeadingIndex]) > 600 ? 5 : 0;
+      const remain = greaterValue && greaterValue.length > 0 && stringToInt(greaterValue[stocksCountHeadingIndex]) > 400 ? 10 : 0;
       return [filteredMappingData[i][0], filteredMappingData[i][2], remain];
     });
 
