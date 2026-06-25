@@ -52,9 +52,11 @@ const parseTDLStocks = async () => { // TDL (сделано только для 
     const mappingSheet = mappingWorkBook.Sheets[TDL_BYAZ_220_SOLID_SHEETNAME];
     if (!mappingSheet) return console.log('Sheet not found');
     const mappingData = XLSX.utils.sheet_to_json(mappingSheet, { header: 1 });
+    const filteredMappingData = mappingData.filter(row => row[3] !== 0); // Берём из файла mapping только те строки, в которых в 4 столбце не указано 0
+
     // console.log(mappingData);
 
-    const result = mappingData.map((mappingValue, i) => { // В файле mapping берём каждое значение и ищем его в файле stocks
+    const result = filteredMappingData.map((mappingValue, i) => { // В файле mapping берём каждое значение и ищем его в файле stocks
       const valueMatch = stocksData.find(stocksValue => stocksValue[3] && (stocksValue[3].trim() == mappingValue[1])); // Поиск совпадения по артмкулу поставщика
       const remain = valueMatch && valueMatch.length > 0 && valueMatch[4] > 350 ? 5 : 0;
 
@@ -79,11 +81,12 @@ const parseLogosStocks = async () => {
     const mappingSheet = mappingWorkBook.Sheets[LOGOS_SHEETNAME];
     if (!mappingSheet) return console.log('Sheet not found');
     const mappingData = XLSX.utils.sheet_to_json(mappingSheet, { header: 1 });
+    const filteredMappingData = mappingData.filter(row => row[3] !== 0); // Берём из файла mapping только те строки, в которых в 4 столбце не указано 0
     // console.log(mappingData);
 
-    const result = mappingData.map((mappingValue, i) => { // В файле mapping берём каждое значение и ищем его в файле stocks
+    const result = filteredMappingData.map((mappingValue, i) => { // В файле mapping берём каждое значение и ищем его в файле stocks
       const valueMatch = stocksData.find(stocksValue => stocksValue[0] && (stocksValue[0].trim() == mappingValue[1])); // Поиск совпадения по артмкулу поставщика
-      const remain = valueMatch && valueMatch.length > 0 && valueMatch[14] > 350 ? 5 : 0;
+      const remain = valueMatch && valueMatch.length > 0 && valueMatch[13] > 350 ? 5 : 0;
       return [mappingValue[0], mappingValue[2], remain]; // Возвращаем [артикул Озон, артикул ВБ, остаток]
     });
     // console.log(result);
