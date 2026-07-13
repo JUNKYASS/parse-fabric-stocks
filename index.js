@@ -105,7 +105,11 @@ const parseTTStocks = async () => {
     const stocksSheetName = stocksWorkbook.SheetNames[0];
     const stocksSheet = stocksWorkbook.Sheets[stocksSheetName];
     const stocksData = XLSX.utils.sheet_to_json(stocksSheet, { header: 1, });
-    // console.log(stocksData);
+    const poplinRowIndex = stocksData.findIndex(element => element.length === 1 && element[0] === 'Поплин'); // Ищем строку Поплин и берём её индекс далее разделяем массив на две части, оставляем только ту, которая идёт до строки Поплин (т.е. берём только бязь) (в остатках есть только бязь и поплин в одной таблице, поэтому нужно разделить их на две части)
+    const poplinStocks = poplinRowIndex !== -1 ? stocksData.slice(poplinRowIndex) : stocksData; // Берём из файла stocks только те строки, которые идут после строки Поплин
+    const byazStocks = poplinRowIndex !== -1 ? stocksData.slice(0, poplinRowIndex) : stocksData; // Берём из файла stocks только те строки, которые идут до строки Поплин (т.е. берём только бязь)
+    // console.log('poplinStocks', poplinStocks)
+    // console.log('byazStocks', byazStocks);
 
     const mappingWorkBook = XLSX.readFile(MAPPING_FILE_PATH);
     const mappingSheet = mappingWorkBook.Sheets[TT_SHEETNAME];
@@ -115,7 +119,16 @@ const parseTTStocks = async () => {
     // console.log(mappingData);
 
     const result = filteredMappingData.map((mappingValue, i) => { // В файле mapping берём каждое значение и ищем его в файле stocks
-      const valueMatch = stocksData.find(stocksValue => stocksValue[2] && (stocksValue[2].trim() == mappingValue[1])); // Поиск совпадения по артмкулу поставщика
+      let valueMatch;
+
+      if (mappingValue[0] && mappingValue[0].includes('-BZ-')) { // Если в артикуле поставщика есть -BZ-, значит это бязь, ищем совпадение в массиве byazStocks
+        valueMatch = byazStocks.find(stocksValue => stocksValue[2] && (stocksValue[2].trim() == mappingValue[1])); // Поиск совпадения по артмкулу поставщика
+      } else if (mappingValue[0] && mappingValue[0].includes('-PP-')) { // Если в артикуле поставщика есть -PP-, значит это поплин, ищем совпадение в массиве poplinStocks
+        valueMatch = poplinStocks.find(stocksValue => stocksValue[2] && (stocksValue[2].trim() == mappingValue[1])); // Поиск совпадения по артмкулу поставщика
+      } else { // Если в артикуле поставщика нет -BZ- или -PP-, значит это что-то другое, ищем совпадение в массиве stocksData
+        valueMatch = stocksData.find(stocksValue => stocksValue[2] && (stocksValue[2].trim() == mappingValue[1])); // Поиск совпадения по артмкулу поставщика
+      }
+
       const remain = valueMatch && valueMatch.length > 0 && stringToInt(valueMatch[3]) > 250 ? 10 : 0;
       return [mappingValue[0], mappingValue[2], remain]; // Возвращаем [артикул Озон, артикул ВБ, остаток]
     });
